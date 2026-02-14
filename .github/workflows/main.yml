@@ -700,8 +700,35 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      
-      # Use a smaller emulator configuration
+
+      # Cache the AVD to avoid recreating it every run
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-${{ matrix.target }}-${{ matrix.arch }}
+
+      # Create AVD and save snapshot (only on cache miss)
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          profile: Nexus 6
+          ram-size: 2048M
+          disk-size: 4096M
+          heap-size: 512M
+          cores: 4
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
       - name: Run tests on emulator (${{ matrix.android-version }})
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
@@ -710,6 +737,12 @@ jobs:
           api-level: ${{ matrix.api-level }}
           profile: Nexus 6
           disable-animations: true
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          ram-size: 2048M
+          disk-size: 4096M
+          heap-size: 512M
+          cores: 4
           script: |
             # Display available space
             df -h
@@ -721,34 +754,19 @@ jobs:
             # Install the APK
             adb install apk-debug/android-debug.apk
             
-            # Grant necessary permissions - comprehensive list for all Android APIs
-            echo "Granting all required permissions..."
+            # Grant runtime permissions (only runtime permissions can be granted via pm grant;
+            # install-time permissions like INTERNET, BLUETOOTH, WAKE_LOCK etc. are auto-granted at install)
+            echo "Granting runtime permissions..."
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.ACCESS_FINE_LOCATION || true
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.ACCESS_COARSE_LOCATION || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.BLUETOOTH || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.BLUETOOTH_ADMIN || true
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.BLUETOOTH_ADVERTISE || true
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.BLUETOOTH_CONNECT || true
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.BLUETOOTH_SCAN || true
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.READ_EXTERNAL_STORAGE || true
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.WRITE_EXTERNAL_STORAGE || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.MANAGE_EXTERNAL_STORAGE || true
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.CAMERA || true
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.RECORD_AUDIO || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.INTERNET || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.ACCESS_NETWORK_STATE || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.ACCESS_WIFI_STATE || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.CHANGE_WIFI_STATE || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.WAKE_LOCK || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.VIBRATE || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.READ_PHONE_STATE || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.FOREGROUND_SERVICE || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS || true
-            
-            # Additional permissions for newer Android versions (12+)
             adb shell pm grant org.cagnulen.qdomyoszwift android.permission.POST_NOTIFICATIONS || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.SCHEDULE_EXACT_ALARM || true
-            adb shell pm grant org.cagnulen.qdomyoszwift android.permission.USE_EXACT_ALARM || true
             
             # Enable all app ops permissions  
             adb shell appops set org.cagnulen.qdomyoszwift MANAGE_EXTERNAL_STORAGE allow || true
@@ -765,23 +783,25 @@ jobs:
             
             # Verify the app is running
             echo "Checking if app is running..."
-            # Use different ps commands for different Android versions
             adb shell "ps -A 2>/dev/null || ps" > process_list.txt
-            
-            # Debug: show all processes to understand the format
-            echo "=== All running processes ==="
-            cat process_list.txt | head -20
-            echo "=== Looking for our app ==="
 
-            grep -q "qdomyos" process_list.txt || (echo "App process not found in process list" && echo "TEST FAILED: App process not running" && exit 1)
-            adb shell pm list packages | grep org.cagnulen.qdomyoszwift
-            echo "=== Checking app info ==="
-            adb shell dumpsys package org.cagnulen.qdomyoszwift | grep -A5 -B5 "state"
-            echo "=== Logcat output for debugging ==="
-            adb logcat -d | grep -i "qdomyos\|crash\|error\|exception\|fatal" | tail -n 50
-            echo "=== Full recent logcat ==="
-            adb logcat -d | tail -n 100
+            # Capture logcat BEFORE the failure check so crash diagnostics are always available
+            echo "Saving logcat for analysis..."
+            adb logcat -d > full_logcat.txt
+            adb logcat -d | grep -i "qdomyos\|crash\|error\|exception\|fatal" > qdomyos_logcat.txt
+
+            # Check if app process is running
+            if ! grep -q "qdomyos" process_list.txt; then
+              echo "=== Crash diagnostics ==="
+              tail -50 qdomyos_logcat.txt
+              echo "=== Recent logcat ==="
+              tail -100 full_logcat.txt
+              echo "TEST FAILED: App process not running"
+              exit 1
+            fi
+
             echo "App is running successfully"
+            adb shell pm list packages | grep org.cagnulen.qdomyoszwift
             
             # Take a screenshot for verification
             adb shell screencap -p /sdcard/screenshot.png
@@ -801,11 +821,6 @@ jobs:
             
             # Check if the package is installed
             adb shell pm list packages | grep org.cagnulen.qdomyoszwift
-            
-            # Save logcat for debugging
-            echo "Saving logcat for analysis..."
-            adb logcat -d > full_logcat.txt
-            adb logcat -d | grep -i qdomyos > qdomyos_logcat.txt
 
       - name: Upload test evidence
         if: always()
