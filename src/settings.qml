@@ -5,6 +5,7 @@ import QtQuick.Controls.Material 2.0
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.0
 import Qt.labs.platform 1.1
+import "SettingsSearchIndex.js" as SearchIndex
 
 //Page {
     ScrollView {
@@ -1303,12 +1304,235 @@ import Qt.labs.platform 1.1
           }
         }
 
-        Component.onCompleted: window.settings_restart_to_apply = false;
+        Component.onCompleted: {
+            window.settings_restart_to_apply = false;
+            // Populate accordion map for search navigation
+            accordionMap = {
+                "generalOptionsAccordion": generalOptionsAccordion,
+                "heartRateOptionsAccordion": heartRateOptionsAccordion,
+                "heartRateZoneAccordion": heartRateZoneAccordion,
+                "heartRatemaxOverrideAccordion": heartRatemaxOverrideAccordion,
+                "powerFromHeartRateAccordion": powerFromHeartRateAccordion,
+                "bikeOptionsAccordion": bikeOptionsAccordion,
+                "automaticVirtualShiftingAccordion": automaticVirtualShiftingAccordion,
+                "schwinnBikeAccordion": schwinnBikeAccordion,
+                "horizonBikeAccordion": horizonBikeAccordion,
+                "echelonBikeOptionsAccordion": echelonBikeOptionsAccordion,
+                "inspireBikeAccordion": inspireBikeAccordion,
+                "renphoBikeAccordion": renphoBikeAccordion,
+                "hammerBikeAccordion": hammerBikeAccordion,
+                "cardioFitBikeAccordion": cardioFitBikeAccordion,
+                "yesoulBikeAccordion": yesoulBikeAccordion,
+                "snodeBikeAccordion": snodeBikeAccordion,
+                "skandikaBikeAccordion": skandikaBikeAccordion,
+                "fitplusBikeAccordion": fitplusBikeAccordion,
+                "flywheelBikeAccordion": flywheelBikeAccordion,
+                "domyosBikeAccordion": domyosBikeAccordion,
+                "proformBikeAccordion": proformBikeAccordion,
+                "computrainerBikeAccordion": computrainerBikeAccordion,
+                "kettlerUsbBikeAccordion": kettlerUsbBikeAccordion,
+                "m3iBikeAccordion": m3iBikeAccordion,
+                "soleBikeAccordion": soleBikeAccordion,
+                "technogymBikeAccordion": technogymBikeAccordion,
+                "uiAntOptionsAccordion": uiAntOptionsAccordion,
+                "uiGeneralOptionsAccordion": uiGeneralOptionsAccordion,
+                "themesOptionsAccordion": themesOptionsAccordion,
+                "pelotonAccordion": pelotonAccordion,
+                "zwiftOptionsAccordion": zwiftOptionsAccordion,
+                "rouvyOptionsAccordion": rouvyOptionsAccordion,
+                "garminOptionsAccordion": garminOptionsAccordion,
+                "trainingProgramOptionsAccordion": trainingProgramOptionsAccordion,
+                "treadmillAccordion": treadmillAccordion,
+                "proformTreadmillAccordion": proformTreadmillAccordion,
+                "pafersTreadmillAccordion": pafersTreadmillAccordion,
+                "kingsmithTreadmillAccordion": kingsmithTreadmillAccordion,
+                "runnerTTreadmillAccordion": runnerTTreadmillAccordion,
+                "domyosTreadmillAccordion": domyosTreadmillAccordion,
+                "technogymTreadmillAccordion": technogymTreadmillAccordion,
+                "fitshowAccordion": fitshowAccordion,
+                "eslinkerTreadmillAccordion": eslinkerTreadmillAccordion,
+                "horizonTreadmillAccordion": horizonTreadmillAccordion,
+                "soleTreadmillAccordion": soleTreadmillAccordion,
+                "bowflexTreadmillAccordion": bowflexTreadmillAccordion,
+                "toorxTreadmillAccordion": toorxTreadmillAccordion,
+                "rowerOptionsAccordion": rowerOptionsAccordion,
+                "ellipticalAccordion": ellipticalAccordion,
+                "domyosEllipticalAccordion": domyosEllipticalAccordion,
+                "proformEllipticalAccordion": proformEllipticalAccordion,
+                "soleEllipticalAccordion": soleEllipticalAccordion,
+                "advancedSettingsAccordion": advancedSettingsAccordion,
+                "accesoriesAccordion": accesoriesAccordion,
+                "cadenceSensorOptionsAccordion": cadenceSensorOptionsAccordion,
+                "powerSensorOptionsAccordion": powerSensorOptionsAccordion,
+                "eliteAccesoriesAccordion": eliteAccesoriesAccordion,
+                "eliteRizerOptionsAccordion": eliteRizerOptionsAccordion,
+                "eliteSterzoSmartOptionsAccordion": eliteSterzoSmartOptionsAccordion,
+                "ftmsAccessoryOptionsAccordion": ftmsAccessoryOptionsAccordion,
+                "ftmsAccessoryAdvancedOptionsAccordion": ftmsAccessoryAdvancedOptionsAccordion,
+                "fitmetriaFanFitOptionsAccordion": fitmetriaFanFitOptionsAccordion,
+                "mapsAccordion": mapsAccordion,
+                "experimentalFeatureAccordion": experimentalFeatureAccordion,
+                "virtualBeviceBluetoothAccordion": virtualBeviceBluetoothAccordion,
+                "dirconAccordion": dirconAccordion,
+                "mqttAccordion": mqttAccordion,
+                "oscAccordion": oscAccordion,
+                "templateSettingsAccordion": templateSettingsAccordion
+            };
+        }
+
+        property var accordionMap: ({})
+
+        // Navigate to a setting by expanding its accordion chain and scrolling
+        function navigateToSetting(accordionIds) {
+            settingsSearchField.text = ""
+            settingsSearchField.focus = false
+            // Expand each accordion in the chain
+            for (var i = 0; i < accordionIds.length; i++) {
+                var acc = accordionMap[accordionIds[i]]
+                if (acc) {
+                    acc.isOpen = true
+                }
+            }
+            // Scroll to the innermost accordion after a short delay for content to load
+            var targetId = accordionIds[accordionIds.length - 1]
+            var targetAcc = accordionMap[targetId]
+            if (targetAcc) {
+                settingsScrollTarget = targetAcc
+                settingsScrollTimer.start()
+            }
+        }
+
+        property var settingsScrollTarget: null
+
+        Timer {
+            id: settingsScrollTimer
+            interval: 300
+            repeat: false
+            onTriggered: {
+                if (settingsScrollTarget && settingsScrollTarget.y !== undefined) {
+                    var yPos = settingsScrollTarget.y - 20
+                    if (yPos < 0) yPos = 0
+                    if (settingsPane.contentItem) {
+                        settingsPane.contentItem.contentY = yPos
+                    }
+                }
+                settingsScrollTarget = null
+            }
+        }
 
         ColumnLayout {
             id: column1
             spacing: 0
             anchors.fill: parent
+
+            // Search bar for finding settings
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: 8
+                Layout.rightMargin: 8
+                Layout.topMargin: 4
+                Layout.bottomMargin: 4
+                spacing: 4
+
+                TextField {
+                    id: settingsSearchField
+                    placeholderText: qsTr("Search settings...")
+                    Layout.fillWidth: true
+                    color: "white"
+                    placeholderTextColor: "#888888"
+                    background: Rectangle {
+                        color: "#333333"
+                        radius: 4
+                        border.color: settingsSearchField.activeFocus ? Material.accentColor : "#555555"
+                        border.width: 1
+                    }
+                    onTextChanged: {
+                        searchResultsModel.clear()
+                        if (text.length >= 2) {
+                            var results = SearchIndex.search(text)
+                            for (var i = 0; i < results.length; i++) {
+                                searchResultsModel.append({
+                                    "label": results[i].label,
+                                    "category": results[i].category,
+                                    "accordionIdsStr": JSON.stringify(results[i].accordionIds)
+                                })
+                            }
+                        }
+                    }
+                }
+                Button {
+                    text: "X"
+                    visible: settingsSearchField.text.length > 0
+                    flat: true
+                    onClicked: {
+                        settingsSearchField.text = ""
+                        settingsSearchField.focus = false
+                    }
+                    Layout.preferredWidth: 40
+                }
+            }
+
+            // Search results list
+            ListView {
+                id: searchResultsList
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.min(contentHeight, 300)
+                visible: searchResultsModel.count > 0
+                clip: true
+                model: ListModel { id: searchResultsModel }
+                delegate: Rectangle {
+                    width: searchResultsList.width
+                    height: resultColumn.height + 16
+                    color: resultMouseArea.containsMouse ? "#444444" : "#2a2a2a"
+                    border.color: "#555555"
+                    border.width: 0.5
+
+                    ColumnLayout {
+                        id: resultColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+
+                        Label {
+                            text: model.label
+                            color: "white"
+                            font.pixelSize: Qt.application.font.pixelSize
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+                        Label {
+                            text: model.category
+                            color: Material.color(Material.Lime)
+                            font.pixelSize: Qt.application.font.pixelSize - 3
+                            font.italic: true
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    MouseArea {
+                        id: resultMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var ids = JSON.parse(model.accordionIdsStr)
+                            navigateToSetting(ids)
+                        }
+                    }
+                }
+            }
+
+            // Separator after search
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: "#444444"
+                visible: settingsSearchField.text.length > 0
+            }
 
             AccordionElement {
                 id: generalOptionsAccordion
@@ -6223,6 +6447,7 @@ import Qt.labs.platform 1.1
             }
 
             AccordionElement {
+                id: zwiftOptionsAccordion
                 title: qsTr("Zwift Options") + "\uD83E\uDD47"
                 indicatRectColor: Material.color(Material.Grey)
                 textColor: Material.color(Material.Grey)
@@ -6546,6 +6771,7 @@ import Qt.labs.platform 1.1
             }
 
             AccordionElement {
+                id: rouvyOptionsAccordion
                 title: qsTr("Rouvy Options") + "\uD83E\uDD47"
                 indicatRectColor: Material.color(Material.Grey)
                 textColor: Material.color(Material.Grey)
@@ -10176,6 +10402,7 @@ import Qt.labs.platform 1.1
             }
 
             AccordionElement {
+                id: rowerOptionsAccordion
                 title: qsTr("Rower Options")
                 indicatRectColor: Material.color(Material.Grey)
                 textColor: Material.color(Material.Grey)
