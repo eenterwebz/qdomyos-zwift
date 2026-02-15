@@ -17,6 +17,7 @@ ColumnLayout {
     Settings {
         id: settings
         property string profile_name: "default"
+        property string lastBrowsedProfileFolder: ""
     }
 
     Loader {
@@ -24,10 +25,23 @@ ColumnLayout {
         active: false
         sourceComponent: Component {
             FileDialogClass.FileDialog {
+                id: fileDialog
                 title: "Please choose a file"
-                folder: shortcuts.home
-                visible: true
+                Component.onCompleted: {
+                    console.log("lastBrowsedProfileFolder = " + settings.lastBrowsedProfileFolder)
+                    if (settings.lastBrowsedProfileFolder !== "")
+                        folder = settings.lastBrowsedProfileFolder
+                    else
+                        folder = shortcuts.home
+                    visible = true
+                }
                 onAccepted: {
+                    var fileStr = fileUrl.toString()
+                    var lastSlash = fileStr.lastIndexOf('/')
+                    if (lastSlash > 0) {
+                        settings.lastBrowsedProfileFolder = fileStr.substring(0, lastSlash)
+                        console.log("Saved profile folder: " + settings.lastBrowsedProfileFolder)
+                    }
                     console.log("You chose: " + fileUrl)
                     profile_open_clicked(fileUrl)
                     close()

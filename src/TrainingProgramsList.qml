@@ -16,10 +16,23 @@ ColumnLayout {
         active: false
         sourceComponent: Component {
             FileDialog {
+                id: fileDialog
                 title: "Please choose a file"
-                folder: shortcuts.home
-                visible: true
+                Component.onCompleted: {
+                    console.log("lastBrowsedTrainingFolder = " + settings.lastBrowsedTrainingFolder)
+                    if (settings.lastBrowsedTrainingFolder !== "")
+                        folder = settings.lastBrowsedTrainingFolder
+                    else
+                        folder = shortcuts.home
+                    visible = true
+                }
                 onAccepted: {
+                    var fileStr = fileUrl.toString()
+                    var lastSlash = fileStr.lastIndexOf('/')
+                    if (lastSlash > 0) {
+                        settings.lastBrowsedTrainingFolder = fileStr.substring(0, lastSlash)
+                        console.log("Saved training folder: " + settings.lastBrowsedTrainingFolder)
+                    }
                     console.log("You chose: " + fileUrl)
                     if(OS_VERSION === "Android") {
                         trainprogram_open_other_folder(fileUrl)
@@ -211,6 +224,7 @@ ColumnLayout {
             Settings {
                 id: settings
                 property real ftp: 200.0
+                property string lastBrowsedTrainingFolder: ""
             }
 
             Row {

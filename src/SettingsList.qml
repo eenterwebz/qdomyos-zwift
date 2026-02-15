@@ -4,18 +4,38 @@ import QtQuick.Layouts 1.3
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.0
 import QtQuick.Dialogs 1.0
+import Qt.labs.settings 1.0
 
 ColumnLayout {
     signal loadSettings(url name)
+
+    Settings {
+        id: settings
+        property string lastBrowsedSettingsFolder: ""
+    }
+
     Loader {
         id: fileDialogLoader
         active: false
         sourceComponent: Component {
             FileDialog {
+                id: fileDialog
                 title: "Please choose a file"
-                folder: shortcuts.home
-                visible: true
+                Component.onCompleted: {
+                    console.log("lastBrowsedSettingsFolder = " + settings.lastBrowsedSettingsFolder)
+                    if (settings.lastBrowsedSettingsFolder !== "")
+                        folder = settings.lastBrowsedSettingsFolder
+                    else
+                        folder = shortcuts.home
+                    visible = true
+                }
                 onAccepted: {
+                    var fileStr = fileUrl.toString()
+                    var lastSlash = fileStr.lastIndexOf('/')
+                    if (lastSlash > 0) {
+                        settings.lastBrowsedSettingsFolder = fileStr.substring(0, lastSlash)
+                        console.log("Saved settings folder: " + settings.lastBrowsedSettingsFolder)
+                    }
                     console.log("You chose: " + fileUrl)
                     loadSettings(fileUrl)
                     close()

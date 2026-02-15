@@ -19,6 +19,7 @@ ColumnLayout {
     Settings {
         id: settings
         property real ftp: 200.0
+        property string lastBrowsedTrainingFolder: ""
     }
 
     property var selectedFileUrl: ""
@@ -56,10 +57,22 @@ ColumnLayout {
             FileDialog {
                 id: fileDialog
                 title: "Please choose a file"
-                folder: shortcuts.home
-                visible: true
+                Component.onCompleted: {
+                    console.log("lastBrowsedTrainingFolder = " + settings.lastBrowsedTrainingFolder)
+                    if (settings.lastBrowsedTrainingFolder !== "")
+                        folder = settings.lastBrowsedTrainingFolder
+                    else
+                        folder = shortcuts.home
+                    visible = true
+                }
                 onAccepted: {
                     var chosenFile = fileDialog.fileUrl || fileDialog.file || (fileDialog.fileUrls && fileDialog.fileUrls.length > 0 ? fileDialog.fileUrls[0] : "")
+                    var fileStr = chosenFile.toString()
+                    var lastSlash = fileStr.lastIndexOf('/')
+                    if (lastSlash > 0) {
+                        settings.lastBrowsedTrainingFolder = fileStr.substring(0, lastSlash)
+                        console.log("Saved training folder: " + settings.lastBrowsedTrainingFolder)
+                    }
                     console.log("You chose: " + chosenFile)
                     selectedFileUrl = chosenFile
                     if(OS_VERSION === "Android") {
