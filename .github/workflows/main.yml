@@ -671,7 +671,7 @@ jobs:
           echo "#define INTERVALSICU_CLIENT_ID ${{ secrets.intervalsicu_client_id }}" >> secret.h
           echo "#define INTERVALSICU_CLIENT_SECRET ${{ secrets.intervalsicu_client_secret }}" >> secret.h
           echo "${{ secrets.cesiumkey }}" >> inner_templates/googlemaps/cesium-key.js
-          echo "#define LICENSE" >> secret.h
+          # echo "#define LICENSE" >> secret.h
 
       - name: Build qthttpserver for Android
         run: |
@@ -1389,7 +1389,7 @@ jobs:
           echo "#define INTERVALSICU_CLIENT_ID ${{ secrets.intervalsicu_client_id }}" >> secret.h
           echo "#define INTERVALSICU_CLIENT_SECRET ${{ secrets.intervalsicu_client_secret }}" >> secret.h
           echo "${{ secrets.cesiumkey }}" >> inner_templates/googlemaps/cesium-key.js
-          echo "#define LICENSE" >> secret.h
+          # echo "#define LICENSE" >> secret.h
           cd ..
 
       - name: Build for Raspberry Pi
@@ -1440,7 +1440,7 @@ jobs:
           echo "#define INTERVALSICU_CLIENT_ID ${{ secrets.intervalsicu_client_id }}" >> secret.h
           echo "#define INTERVALSICU_CLIENT_SECRET ${{ secrets.intervalsicu_client_secret }}" >> secret.h
           echo "${{ secrets.cesiumkey }}" >> inner_templates/googlemaps/cesium-key.js
-          echo "#define LICENSE" >> secret.h
+          # echo "#define LICENSE" >> secret.h
           cd ..
 
       - name: Install Qt5 build dependencies
@@ -1752,7 +1752,7 @@ jobs:
           echo "#define INTERVALSICU_CLIENT_ID ${{ secrets.intervalsicu_client_id }}" >> secret.h
           echo "#define INTERVALSICU_CLIENT_SECRET ${{ secrets.intervalsicu_client_secret }}" >> secret.h
           echo "${{ secrets.cesiumkey }}" >> inner_templates/googlemaps/cesium-key.js
-          echo "#define LICENSE" >> secret.h
+          # echo "#define LICENSE" >> secret.h
           # Set variant-specific IP setting
           sed -i 's/property string ${{ matrix.variant.setting_key }}: ""/property string ${{ matrix.variant.setting_key }}: "${{ matrix.variant.setting_value }}"/' settings.qml
           cd ..          
@@ -1853,7 +1853,7 @@ jobs:
           echo "#define INTERVALSICU_CLIENT_ID ${{ secrets.intervalsicu_client_id }}" >> secret.h
           echo "#define INTERVALSICU_CLIENT_SECRET ${{ secrets.intervalsicu_client_secret }}" >> secret.h
           echo "${{ secrets.cesiumkey }}" >> inner_templates/googlemaps/cesium-key.js
-          echo "#define LICENSE" >> secret.h
+          # echo "#define LICENSE" >> secret.h
           cd ..
 
           ln -sfn $ANDROID_SDK_ROOT/ndk/21.4.7075529 $ANDROID_NDK
@@ -1952,7 +1952,7 @@ jobs:
           echo "#define INTERVALSICU_CLIENT_ID ${{ secrets.intervalsicu_client_id }}" >> secret.h
           echo "#define INTERVALSICU_CLIENT_SECRET ${{ secrets.intervalsicu_client_secret }}" >> secret.h
           echo "${{ secrets.cesiumkey }}" >> inner_templates/googlemaps/cesium-key.js
-          echo "#define LICENSE" >> secret.h
+          # echo "#define LICENSE" >> secret.h
           cd ..
 
           ln -sfn $ANDROID_SDK_ROOT/ndk/21.4.7075529 $ANDROID_NDK
